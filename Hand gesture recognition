@@ -1,0 +1,64 @@
+import cv2
+import numpy as np
+
+# Function to recognize hand gestures
+def recognize_gesture(contour):
+    # Define your gesture recognition logic here
+    # You can use properties of the contour like area, perimeter, convexity defects, etc.
+
+    # For example, you might check the number of fingers based on the number of convexity defects
+    hull = cv2.convexHull(contour, returnPoints=False)
+    defects = cv2.convexityDefects(contour, hull)
+
+    if defects is not None:
+        num_defects = defects.shape[0]
+        if num_defects >= 3:  # Assuming at least 3 fingers are needed for a "V" sign
+            return "V Sign"
+        else:
+            return "Other Gesture"
+    else:
+        return "Other Gesture"
+
+# Initialize the camera
+cap = cv2.VideoCapture(0)
+
+while True:
+    # Capture a frame from the camera
+    ret, frame = cap.read()
+
+    # Convert the frame to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Apply Gaussian Blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Threshold the image
+    _, thresh = cv2.threshold(blurred, 70, 255, cv2.THRESH_BINARY)
+
+    # Find contours
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        # Find the contour with the largest area (hand)
+        max_contour = max(contours, key=cv2.contourArea)
+
+        # Draw the contour on the original frame
+        cv2.drawContours(frame, [max_contour], -1, (0, 255, 0), 2)
+
+        # Recognize the gesture
+        gesture = recognize_gesture(max_contour)
+
+        # Display the recognized gesture on the frame
+        cv2.putText(frame, f'Gesture: {gesture}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    # Show the frame
+    cv2.imshow('Hand Gesture Recognition', frame)
+
+    # Break the loop if 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release the camera and close the OpenCV windows
+cap.release()
+cv2.destroyAllWindows()
+
